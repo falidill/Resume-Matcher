@@ -1,5 +1,7 @@
 streamlit
-pandas
-numpy
+sentence-transformers
+torch
 scikit-learn
-PyPDF2
+docx2txt
+pdfminer.six
+
