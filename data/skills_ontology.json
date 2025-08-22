@@ -1,0 +1,10 @@
+{
+  "programming": ["Python", "R", "SQL", "Scala", "Java", "C++"],
+  "ml_ai": ["Machine Learning", "Deep Learning", "XGBoost", "Random Forest", "Logistic Regression", "SVM", "KMeans", "PCA", "BERT", "Transformers", "PyTorch", "TensorFlow", "Keras", "scikit-learn", "Hugging Face"],
+  "bi": ["Power BI", "Tableau", "Looker", "DAX", "Power Query"],
+  "data_engineering": ["ETL", "Airflow", "Spark", "Databricks", "Snowflake", "BigQuery", "Redshift", "Data Lake", "DBT"],
+  "cloud": ["AWS", "Azure", "GCP", "S3", "EC2", "Lambda", "SageMaker", "Docker", "Kubernetes"],
+  "nlp": ["NLP", "Text Classification", "Named Entity Recognition", "Topic Modeling", "Sentence Embeddings", "Semantic Search", "RAG"],
+  "analytics": ["A/B Testing", "Experimentation", "Causal Inference", "Time Series", "Forecasting", "Optimization"],
+  "governance": ["HIPAA", "GDPR", "PII", "Data Quality", "Data Governance", "MLOps", "CI/CD"]
+}
