@@ -1,8 +1,13 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 import streamlit as st
 from io import BytesIO
 from pathlib import Path
 
-from resume_matcher.scoring.ensemble_scoring import compute_score, clean_text
+from scoring.ensemble_scoring import compute_score, clean_text
+
 
 try:
     from pdfminer.high_level import extract_text as pdf_extract
