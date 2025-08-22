@@ -6,9 +6,7 @@ import streamlit as st
 from io import BytesIO
 from pathlib import Path
 
-from scoring.ensemble_scoring import compute_score, clean_text
-
-
+from resume_matcher.scoring.ensemble_scoring import compute_score, clean_text
 try:
     from pdfminer.high_level import extract_text as pdf_extract
 except Exception:
