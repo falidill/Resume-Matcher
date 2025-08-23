@@ -92,3 +92,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Streamlit specific
+.streamlit/
+*.log
+
