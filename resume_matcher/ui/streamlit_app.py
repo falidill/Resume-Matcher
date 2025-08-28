@@ -37,48 +37,39 @@ st.set_page_config(
 )
 
 # -------------------------------------------------------------------
-# Dark Modern Theme CSS (compact nav + steps styling + spacing fix)
+# Dark Modern Theme CSS (compact nav + steps styling + top-space fix)
 # -------------------------------------------------------------------
 DARK_THEME_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* =========================================================
-   GLOBAL / LAYOUT
-   ========================================================= */
-:root { --nav-h: 52px; }  /* single source of truth for fixed nav height */
+/* ===== Layout fixes for extra top space ===== */
 
-.stApp{
-  background: linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
-  font-family: 'Inter', sans-serif; color:#fff;
-  padding-top: 0 !important; /* don't add extra space above */
-}
-
-/* Remove Streamlit's built-in header/toolbar from layout (no height left behind) */
-header,
-div[data-testid="stToolbar"] {
+/* Remove Streamlit header/toolbar from layout (not just hide) */
+header, div[data-testid="stToolbar"] {
   display: none !important;
   height: 0 !important;
   visibility: hidden !important;
 }
 
-/* Remove default top padding/margin from Streamlit's main block container */
-.block-container {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
+/* Remove default top padding/margins from Streamlit containers */
+.block-container { padding-top: 0 !important; margin-top: 0 !important; }
+.stApp { padding-top: 0 !important; }
+
+/* Use one consistent offset for the fixed navbar */
+:root { --nav-h: 52px; }
+
+/* ===== App styling ===== */
+.stApp{
+  background: linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+  font-family: 'Inter', sans-serif; color:#fff;
 }
 
-/* First child should not push content down */
-.main-content > *:first-child { margin-top: 0 !important; }
-.block-container > div:first-child { margin-top: 0 !important; }
-
-/* =========================================================
-   TOP NAV (fixed)
-   ========================================================= */
+/* Compact fixed nav */
 .nav-container{
   display:flex; justify-content:space-between; align-items:center;
-  padding:.45rem 1rem;                 /* compact */
-  height: var(--nav-h);                /* explicit height */
+  height: var(--nav-h);                 /* single source of truth */
+  padding: 0 1rem;                      /* horizontal padding only */
   box-sizing: border-box;
   background:rgba(26,26,46,.92);
   backdrop-filter: blur(8px);
@@ -91,12 +82,12 @@ div[data-testid="stToolbar"] {
 .nav-link{color:rgba(255,255,255,.85); text-decoration:none; font-weight:600; padding:.35rem .8rem; border-radius:10px}
 .nav-link:hover{background:rgba(255,255,255,.12); color:#fff}
 
-/* Content starts right under the fixed nav */
+/* Main content starts right under nav */
 .main-content{ padding-top: calc(var(--nav-h) + 6px); min-height:100vh; }
+.main-content > *:first-child { margin-top: 0 !important; }
+.block-container > div:first-child { margin-top: 0 !important; }
 
-/* =========================================================
-   HERO
-   ========================================================= */
+/* Hero (tight) */
 .hero-section{
   text-align:center; padding:1.2rem 1rem .8rem;
   max-width:1200px; margin:0 auto;
@@ -110,18 +101,14 @@ div[data-testid="stToolbar"] {
 .hero-subtitle{font-size:1.05rem; color:rgba(255,255,255,.9); margin-bottom:.4rem}
 .hero-description{font-size:.98rem; color:rgba(255,255,255,.75); max-width:900px; margin:0 auto 1.0rem; line-height:1.55}
 
-/* =========================================================
-   ABOUT BLURB
-   ========================================================= */
+/* About blurb */
 .about-blurb{
   max-width:1000px; margin:0 auto 1.0rem; padding:.8rem 1rem;
   background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); border-radius:16px;
   color:rgba(255,255,255,.9); line-height:1.55;
 }
 
-/* =========================================================
-   STEPS SECTION
-   ========================================================= */
+/* Steps section */
 .steps-wrap{max-width:1160px; margin:0 auto 1.0rem; padding:0 1rem}
 .steps-title{font-size:2.2rem; font-weight:900; letter-spacing:.3px; margin:.4rem 0 .4rem}
 .steps-title .grad{background:linear-gradient(90deg,#ff7dd1,#ff8a6b,#ffb35c); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text}
@@ -149,9 +136,7 @@ div[data-testid="stToolbar"] {
 .step-h{font-size:1.25rem; font-weight:800; margin:.35rem 0 .35rem}
 .step-p{font-size:.98rem; color:rgba(255,255,255,.75); line-height:1.55}
 
-/* =========================================================
-   UPLOAD CARD
-   ========================================================= */
+/* Upload card (functional) */
 .upload-card{
   background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
   border-radius:24px; padding:1.2rem; margin:1.0rem auto; max-width:1100px;
@@ -159,19 +144,7 @@ div[data-testid="stToolbar"] {
 }
 .upload-title{text-align:center; font-size:1.4rem; font-weight:900; margin:.2rem 0 1rem}
 
-.stFileUploader > div{
-  background:rgba(255,255,255,.05); border:2px dashed rgba(255,255,255,.3);
-  border-radius:16px; padding:1.0rem; text-align:center;
-}
-.stTextArea > div > div > textarea{
-  background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.2);
-  border-radius:16px; color:#fff; font-family:'Inter',sans-serif;
-}
-.stTextArea > div > div > textarea:focus{ border-color:#e91e63; box-shadow:0 0 0 3px rgba(233,30,99,.2) }
-
-/* =========================================================
-   SCORE / METRICS / SKILLS
-   ========================================================= */
+/* Score */
 .score-container{
   background: linear-gradient(135deg,#22c55e 0%,#16a34a 100%);
   border-radius:24px; padding:2.5rem; text-align:center; color:#fff;
@@ -181,6 +154,7 @@ div[data-testid="stToolbar"] {
 .score-label{font-size:1.2rem; font-weight:700; opacity:.95; margin-bottom:.25rem}
 .score-description{font-size:1rem; opacity:.92; max-width:480px; margin:0 auto; line-height:1.5}
 
+/* Metric cards */
 .metrics-grid{
   display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
   gap:1.25rem; max-width:1000px; margin:1.5rem auto;
@@ -195,6 +169,7 @@ div[data-testid="stToolbar"] {
 .metric-title{font-size:1rem; font-weight:800}
 .metric-description{font-size:.92rem; color:rgba(255,255,255,.75)}
 
+/* Skills */
 .skills-section{
   background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
   border-radius:18px; padding:1.25rem; margin:1.5rem auto; max-width:1000px;
@@ -209,12 +184,19 @@ div[data-testid="stToolbar"] {
 }
 .skill-chip:hover{ transform:translateY(-2px) }
 
-/* =========================================================
-   HIDE STREAMLIT CHROME WE DON'T NEED
-   ========================================================= */
-#MainMenu{visibility:hidden}
-footer{visibility:hidden}
-.stDeployButton{display:none}
+/* Inputs */
+.stFileUploader > div{
+  background:rgba(255,255,255,.05); border:2px dashed rgba(255,255,255,.3);
+  border-radius:16px; padding:1.0rem; text-align:center;
+}
+.stTextArea > div > div > textarea{
+  background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.2);
+  border-radius:16px; color:#fff; font-family:'Inter',sans-serif;
+}
+.stTextArea > div > div > textarea:focus{ border-color:#e91e63; box-shadow:0 0 0 3px rgba(233,30,99,.2) }
+
+/* Hide Streamlit deploy button, keep our layout clean */
+#MainMenu{visibility:hidden} .stDeployButton{display:none}
 .stAppViewContainer > .main > div > div > div > div {background: transparent;}
 </style>
 """
