@@ -1,4 +1,4 @@
-# streamlit_app.py — Modern Resume Matcher (compact header, single page, about blurb, footer)
+# streamlit_app.py — Modern Resume Matcher (compact header, steps, functional upload, footer)
 
 import sys
 import os
@@ -37,7 +37,7 @@ st.set_page_config(
 )
 
 # -------------------------------------------------------------------
-# Dark Modern Theme CSS (compacted header + smaller hero)
+# Dark Modern Theme CSS (compact nav + steps styling)
 # -------------------------------------------------------------------
 DARK_THEME_CSS = """
 <style>
@@ -49,52 +49,82 @@ DARK_THEME_CSS = """
   font-family: 'Inter', sans-serif; color:#fff;
 }
 
-/* Compact fixed nav */
+/* Compact fixed nav (smaller) */
 .nav-container{
   display:flex; justify-content:space-between; align-items:center;
-  padding:.75rem 1.5rem;               /* ↓ smaller */
+  padding:.55rem 1.1rem;                  /* compact */
   background:rgba(26,26,46,.92);
   backdrop-filter: blur(8px);
   border-bottom:1px solid rgba(255,255,255,.08);
   position:fixed; inset:0 0 auto 0; z-index:1000;
 }
-.logo{display:flex; align-items:center; font-size:1.25rem; font-weight:800; letter-spacing:.5px}
-.logo-icon{color:#e91e63; margin-right:.5rem; font-size:1.5rem}
-.nav-links{display:flex; gap:1rem}
-.nav-link{color:rgba(255,255,255,.85); text-decoration:none; font-weight:600; padding:.4rem .9rem; border-radius:10px}
+.logo{display:flex; align-items:center; font-size:1.15rem; font-weight:800; letter-spacing:.4px}
+.logo-icon{color:#e91e63; margin-right:.45rem; font-size:1.35rem}
+.nav-links{display:flex; gap:.8rem}
+.nav-link{color:rgba(255,255,255,.85); text-decoration:none; font-weight:600; padding:.35rem .8rem; border-radius:10px}
 .nav-link:hover{background:rgba(255,255,255,.12); color:#fff}
 
-/* Main content: pad only as much as nav height */
-.main-content{ padding-top:72px; min-height:100vh; } /* ↓ from 100px */
+/* Main content: pad for nav height; remove first-child margins */
+.main-content{ padding-top:56px; min-height:100vh; }
+.main-content > *:first-child { margin-top: 0 !important; }
+.block-container > div:first-child { margin-top: 0 !important; }
 
-/* Hero (smaller top/bottom padding) */
+/* Hero (tight) */
 .hero-section{
-  text-align:center; padding:2.25rem 1rem 1.25rem;  /* ↓ from 4rem 2rem 2rem */
+  text-align:center; padding:1.2rem 1rem .8rem;
   max-width:1200px; margin:0 auto;
 }
-.tagline{color:#e91e63; font-size:1rem; font-weight:600; margin-bottom:1rem; font-style:italic}
-.hero-title{font-size:3rem; font-weight:800; margin:.25rem 0 1rem; line-height:1.12}
+.tagline{color:#e91e63; font-size:.95rem; font-weight:600; margin-bottom:.6rem; font-style:italic}
+.hero-title{font-size:2.6rem; font-weight:800; margin:.1rem 0 .6rem; line-height:1.15}
 .hero-title-gradient{
   background: linear-gradient(135deg,#ffffff 0%,#e91e63 100%);
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
 }
-.hero-subtitle{font-size:1.2rem; color:rgba(255,255,255,.85); margin-bottom:.75rem}
-.hero-description{font-size:1rem; color:rgba(255,255,255,.75); max-width:900px; margin:0 auto 1.25rem; line-height:1.55}
+.hero-subtitle{font-size:1.05rem; color:rgba(255,255,255,.9); margin-bottom:.4rem}
+.hero-description{font-size:.98rem; color:rgba(255,255,255,.75); max-width:900px; margin:0 auto 1.0rem; line-height:1.55}
 
-/* About blurb card (brief, on landing) */
+/* About blurb */
 .about-blurb{
-  max-width:1000px; margin:0 auto 1.5rem; padding:1rem 1.25rem;
+  max-width:1000px; margin:0 auto 1.0rem; padding:.8rem 1rem;
   background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); border-radius:16px;
   color:rgba(255,255,255,.9); line-height:1.55;
 }
 
-/* Upload card */
+/* Steps section */
+.steps-wrap{max-width:1160px; margin:0 auto 1.0rem; padding:0 1rem}
+.steps-title{font-size:2.2rem; font-weight:900; letter-spacing:.3px; margin:.4rem 0 .4rem}
+.steps-title .grad{background:linear-gradient(90deg,#ff7dd1,#ff8a6b,#ffb35c); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text}
+.steps-sub{font-size:1.05rem; color:rgba(255,255,255,.8); text-align:center; font-style:italic; margin:.2rem 0 1.2rem}
+
+.steps-line{position:relative; height:84px; margin:.4rem 0 1.2rem}
+.steps-line::before{
+  content:""; position:absolute; left:8%; right:8%; top:50%;
+  height:3px; background:linear-gradient(90deg,#ff7dd1,#ff8a6b,#ffb35c); opacity:.7; transform:translateY(-50%);
+  border-radius:8px;
+}
+.step-dot{
+  position:absolute; top:50%; transform:translate(-50%,-50%);
+  width:58px; height:58px; border-radius:18px;
+  background:radial-gradient(ellipse at 30% 30%, rgba(255,255,255,.25), rgba(255,0,128,.28) 60%, rgba(0,0,0,.15) 61%);
+  box-shadow:0 10px 22px rgba(0,0,0,.35), 0 0 24px rgba(255,0,128,.45) inset;
+  display:grid; place-items:center; font-weight:900; font-size:1.15rem;
+}
+.step-pos-1{left:12%} .step-pos-2{left:38%} .step-pos-3{left:62%} .step-pos-4{left:88%}
+
+.steps-grid{
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:1.2rem; text-align:center; margin:.4rem 0 0;
+}
+.step-h{font-size:1.25rem; font-weight:800; margin:.35rem 0 .35rem}
+.step-p{font-size:.98rem; color:rgba(255,255,255,.75); line-height:1.55}
+
+/* Upload card (functional) */
 .upload-card{
   background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
-  border-radius:24px; padding:2rem; margin:1.25rem auto; max-width:1000px;
+  border-radius:24px; padding:1.2rem; margin:1.0rem auto; max-width:1100px;
   backdrop-filter: blur(8px); box-shadow:0 16px 34px rgba(0,0,0,.28);
 }
-.upload-title{text-align:center; font-size:1.6rem; font-weight:800; margin-bottom:1.25rem}
+.upload-title{text-align:center; font-size:1.4rem; font-weight:900; margin:.2rem 0 1rem}
 
 /* Score */
 .score-container{
@@ -139,7 +169,7 @@ DARK_THEME_CSS = """
 /* Inputs */
 .stFileUploader > div{
   background:rgba(255,255,255,.05); border:2px dashed rgba(255,255,255,.3);
-  border-radius:16px; padding:1.25rem; text-align:center;
+  border-radius:16px; padding:1.0rem; text-align:center;
 }
 .stTextArea > div > div > textarea{
   background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.2);
@@ -147,7 +177,7 @@ DARK_THEME_CSS = """
 }
 .stTextArea > div > div > textarea:focus{ border-color:#e91e63; box-shadow:0 0 0 3px rgba(233,30,99,.2) }
 
-/* Hide Streamlit default chrome we don't need */
+/* Hide Streamlit chrome */
 #MainMenu{visibility:hidden} footer{visibility:hidden} header{visibility:hidden} .stDeployButton{display:none}
 .stAppViewContainer > .main > div > div > div > div {background: transparent;}
 </style>
@@ -155,7 +185,7 @@ DARK_THEME_CSS = """
 st.markdown(DARK_THEME_CSS, unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# Compact Top Bar (no Home/About pages)
+# Compact Top Bar
 # -------------------------------------------------------------------
 def render_navigation():
     st.markdown("""
@@ -200,11 +230,11 @@ def render_skills_chips(skills):
 # -------------------------------------------------------------------
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
-# Session state
+# session state
 if "analysis_done" not in st.session_state:
     st.session_state.analysis_done = False
 
-# Hero
+# Hero + About + Steps + Upload
 if not st.session_state.analysis_done:
     st.markdown("""
     <div class="hero-section">
@@ -222,7 +252,6 @@ if not st.session_state.analysis_done:
     </div>
     """, unsafe_allow_html=True)
 
-    # About blurb (on landing, short)
     st.markdown("""
     <div class="about-blurb">
         <strong>What is this?</strong> Resume Matcher is a free, open-source tool built to help job seekers tailor
@@ -230,20 +259,64 @@ if not st.session_state.analysis_done:
     </div>
     """, unsafe_allow_html=True)
 
-    # Upload section
-    st.markdown('<div class="upload-card"><div class="upload-title">Upload Your Documents</div></div>', unsafe_allow_html=True)
+    # Steps section
+    st.markdown("""
+    <div class="steps-wrap">
+      <h2 class="steps-title">Simple Steps to an <span class="grad">Optimized Resume</span></h2>
+      <div class="steps-sub">Optimize Your Resume & Land More Interviews with Resume Matcher</div>
+
+      <div class="steps-line">
+        <div class="step-dot step-pos-1">1</div>
+        <div class="step-dot step-pos-2">2</div>
+        <div class="step-dot step-pos-3">3</div>
+        <div class="step-dot step-pos-4">4</div>
+      </div>
+
+      <div class="steps-grid">
+        <div>
+          <div class="step-h">Upload your resume</div>
+          <div class="step-p">Quickly upload your existing document.</div>
+        </div>
+        <div>
+          <div class="step-h">Paste the job description</div>
+          <div class="step-p">Provide the job description.</div>
+        </div>
+        <div>
+          <div class="step-h">Get instant insights</div>
+          <div class="step-p">See scores and optimized keywords.</div>
+        </div>
+        <div>
+          <div class="step-h">Apply smarter</div>
+          <div class="step-p">Tailor your resume and submit with confidence.</div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Upload section (functional)
+    st.markdown('<div class="upload-card">', unsafe_allow_html=True)
+    st.markdown('<div class="upload-title">Upload Your Documents</div>', unsafe_allow_html=True)
+
     c1, c2 = st.columns(2, gap="large")
     with c1:
-        st.markdown("### 📄 Resume")
-        resume_file = st.file_uploader("Upload your resume", type=["pdf","docx","txt"], label_visibility="collapsed",
-                                       help="Supported formats: PDF, DOCX, TXT")
+        st.markdown("#### 📄 Resume")
+        resume_file = st.file_uploader(
+            "Upload your resume",
+            type=["pdf", "docx", "txt"],
+            help="Supported formats: PDF, DOCX, TXT",
+            label_visibility="collapsed"
+        )
     with c2:
-        st.markdown("### 📋 Job Description")
-        jd_text = st.text_area("Paste the job description here", height=200, label_visibility="collapsed",
-                               placeholder="Paste the complete job description here...")
+        st.markdown("#### 📋 Job Description")
+        jd_text = st.text_area(
+            "Paste the job description here",
+            height=200,
+            placeholder="Paste the complete job description here...",
+            label_visibility="collapsed"
+        )
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-    _, cbtn, _ = st.columns([1,2,1])
+    _, cbtn, _ = st.columns([1, 2, 1])
     with cbtn:
         if st.button("Try Resume Matcher", type="primary", use_container_width=True):
             if not resume_file or not jd_text.strip():
@@ -260,6 +333,8 @@ if not st.session_state.analysis_done:
                     st.session_state.analysis_done = True
                     st.session_state.resume_name = resume_file.name
                     st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)  # end upload-card
 
 # Results
 if st.session_state.analysis_done and "analysis_result" in st.session_state:
@@ -293,13 +368,13 @@ if st.session_state.analysis_done and "analysis_result" in st.session_state:
         ("Content Similarity", emb, "Overall semantic similarity with job description"),
         ("Skills Coverage",   cov, "Percentage of required skills present in your resume"),
     ]:
-      st.markdown(f"""
-      <div class="metric-card">
-        <div class="metric-value">{value:.1f}%</div>
-        <div class="metric-title">{title}</div>
-        <div class="metric-description">{desc}</div>
-      </div>
-      """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="metric-card">
+          <div class="metric-value">{value:.1f}%</div>
+          <div class="metric-title">{title}</div>
+          <div class="metric-description">{desc}</div>
+        </div>
+        """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     aligned = result.get("aligned_skills", [])
@@ -325,7 +400,7 @@ if st.session_state.analysis_done and "analysis_result" in st.session_state:
 st.markdown('</div>', unsafe_allow_html=True)  # end main-content
 
 # -------------------------------------------------------------------
-# Footer (with separators •)
+# Footer with attribution
 # -------------------------------------------------------------------
 st.markdown("""
 <hr style="border:none;border-top:1px solid rgba(255,255,255,.18); margin: 1.0rem 0 0.5rem;">
