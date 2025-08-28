@@ -1,11 +1,10 @@
-# streamlit_app.py — improved UX with footer and branding
+# streamlit_app.py — improved UX + accuracy fixes (JD cleaning, ontology guard, coverage fallback)
 
 import sys
 import os
 import re
 import json
 import datetime as dt
-from io import BytesIO
 from pathlib import Path
 
 import streamlit as st
@@ -15,6 +14,7 @@ import pandas as pd
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from resume_matcher.scoring.ensemble_scoring import compute_score, clean_text
 
+# Optional parsers
 try:
     from pdfminer.high_level import extract_text as pdf_extract
 except Exception:
@@ -25,9 +25,15 @@ try:
 except Exception:
     docx2txt = None
 
+# -------------------------------------------------------------------
+# Paths / Page config
+# -------------------------------------------------------------------
 ONTOLOGY_PATH = Path(__file__).resolve().parents[2] / "data" / "skills_ontology.json"
 st.set_page_config(page_title="Resume ⇄ JD Match Tool", page_icon="🧠", layout="wide")
 
+# -------------------------------------------------------------------
+# Styles (chips + score bar)
+# -------------------------------------------------------------------
 CHIP_CSS = """
 <style>
 .chip { display:inline-block; padding:6px 10px; margin:4px 6px 0 0; border-radius:16px; font-size:0.85rem; border:1px solid rgba(0,0,0,0.06) }
@@ -40,19 +46,9 @@ CHIP_CSS = """
 """
 st.markdown(CHIP_CSS, unsafe_allow_html=True)
 
-
-# st.markdown(
-#     """
-# <div class="block-card" style="text-align:center; padding:28px 20px; margin: 6px 0 16px">
-#   <div class="h1">🧠 Resume Matcher</div>
-#   <div class="sub">No more guessing — see how well your resume matches the job description.</div>
-#   <div class="small">Clear, fast, and private • No login required</div>
-# </div>
-# """,
-#     unsafe_allow_html=True
-# )
-
-
+# -------------------------------------------------------------------
+# Hero
+# -------------------------------------------------------------------
 st.markdown(
     """
 <div style="padding:1.6rem; background:linear-gradient(90deg,#2c3e50,#8e44ad); border-radius:16px; text-align:center; margin-bottom:1rem">
@@ -63,6 +59,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# -------------------------------------------------------------------
+# Sidebar
+# -------------------------------------------------------------------
 with st.sidebar:
     st.header("Options")
     privacy = st.checkbox("Delete processed text after scoring (privacy-first)", value=True)
@@ -70,12 +69,22 @@ with st.sidebar:
     show_history = st.checkbox("Keep session history (last 5)", value=True)
     st.caption("We do not store your documents by default. Keep the Apache-2.0 license & attribution from the base repo.")
 
+# Warn early if ontology is missing (prevents confusing 0 coverage)
+if not ONTOLOGY_PATH.exists():
+    st.warning("Skills ontology not found at: " + str(ONTOLOGY_PATH) + " — coverage metrics may be inaccurate.")
+
+# -------------------------------------------------------------------
+# Inputs
+# -------------------------------------------------------------------
 col1, col2 = st.columns(2)
 with col1:
     resume_file = st.file_uploader("📄 Upload Resume (PDF / DOCX / TXT)", type=["pdf", "docx", "txt"], help="Prefer a one-column ATS-friendly layout.")
 with col2:
     jd_text = st.text_area("📋 Paste Job Description", height=280, placeholder="Paste the full job description here…")
 
+# -------------------------------------------------------------------
+# Helpers
+# -------------------------------------------------------------------
 def extract_resume_text(uploaded_file) -> str:
     if not uploaded_file:
         return ""
@@ -98,7 +107,7 @@ def ats_lite_findings(resume_txt: str):
         findings.append("Phone number not clearly detected.")
     if not re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", resume_txt):
         findings.append("Email address not clearly detected.")
-    if not re.search(r"(20\d{2}|\bpresent\b|\bcurrent\b)", resume_txt, flags=re.I):
+    if not re.search(r"(20\\d{2}|\\bpresent\\b|\\bcurrent\\b)", resume_txt, flags=re.I):
         findings.append("Employment dates not obvious (e.g., 2022–2024 / Present).")
     return findings
 
@@ -122,26 +131,99 @@ def quick_suggestions(missing_terms):
         out.append(f"• {templates[i % len(templates)].format(term=term)}")
     return "\n".join(out) if out else "No suggestions — strong match."
 
+# Simple ontology helpers for display-side fallback
+def load_ontology_terms(path: Path):
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, dict) and "skills" in data:
+            return [str(s).lower() for s in data["skills"]]
+        if isinstance(data, list):
+            return [str(s).lower() for s in data]
+    except Exception:
+        pass
+    return []
+
+def extract_skills_simple(text: str, terms):
+    t = (text or "").lower()
+    # Normalize common variants
+    t = t.replace("scikit learn", "scikit-learn")
+    found = set()
+    for term in terms:
+        if re.search(rf"(?<!\\w){re.escape(term)}(?!\\w)", t):
+            found.add(term)
+    return found
+
+# Real copy-to-clipboard button
+def copy_to_clipboard_button(text: str, label="📋 Copy suggestions to clipboard"):
+    from streamlit.components.v1 import html
+    safe = (text or "").replace("\\", "\\\\").replace("`", "\\`").replace("</", "<\\/")
+    html(f"""
+        <button onclick="navigator.clipboard.writeText(`{safe}`)"
+                style="background:#111827;border:1px solid #2b2f36;color:#e5e7eb;border-radius:12px;padding:10px 14px;cursor:pointer;margin:6px 0;">
+            {label}
+        </button>
+        """, height=46)
+
+# Session history
 if "history" not in st.session_state:
     st.session_state.history = []
 
+# -------------------------------------------------------------------
+# Action
+# -------------------------------------------------------------------
 run = st.button("⚡ Check Match", type="primary", use_container_width=True)
 if run:
     if not resume_file or not jd_text.strip():
         st.error("Please upload a resume and paste a job description.")
         st.stop()
 
-    progress = st.progress(0)
-    with st.spinner("Analyzing your resume against the job description…"):
-        for i in range(1, 51):
-            progress.progress(i * 2)
+    # Clean JD (this was missing and can tank coverage)
+    jd_text_clean = clean_text(jd_text or "")
+
+    # Status block instead of fake progress loop
+    with st.status("Analyzing your resume against the job description…", expanded=False) as status:
         resume_text = extract_resume_text(resume_file)
         if not resume_text:
+            status.update(label="Parsing failed", state="error")
             st.stop()
-        result = compute_score(resume_text, jd_text, ONTOLOGY_PATH)
 
+        # Core scoring
+        result = compute_score(resume_text, jd_text_clean, ONTOLOGY_PATH)
+        status.update(label="Done! Scroll to see your results.", state="complete")
+
+    # ---------------- Results ----------------
     st.markdown("### 📊 Match Results")
-    score = int(result.get("total_score", 0))
+
+    # Subscores & potential fallback coverage
+    subs = result.get("subscores", {}) or {}
+    skills_cov = subs.get("skills_coverage", 0)
+    aligned = [s for s in result.get("aligned_skills", []) if s]
+
+    # If coverage is 0 but we clearly matched terms, compute a display-side fallback
+    fallback_used = False
+    if skills_cov == 0 and aligned:
+        terms = load_ontology_terms(ONTOLOGY_PATH) if ONTOLOGY_PATH.exists() else []
+        if terms:
+            jd_terms = extract_skills_simple(jd_text_clean, terms)
+            res_terms = extract_skills_simple(resume_text, terms)
+            inter = jd_terms & res_terms
+            denom = len(jd_terms) or 1
+            fallback_cov = round(100 * len(inter) / denom, 1)
+            subs["skills_coverage"] = fallback_cov
+            result["subscores"] = subs
+            skills_cov = fallback_cov
+            fallback_used = True
+
+    # Optional: recompute a displayed total so the bar matches the patched subscores
+    kw   = subs.get("keyword_alignment", 0)
+    ev   = subs.get("evidence", 0)
+    emb  = subs.get("embedding_similarity", 0)
+    cov  = subs.get("skills_coverage", 0)
+
+    # These weights are just display-side; your backend still controls real scoring logic
+    display_total = round(0.30*kw + 0.30*ev + 0.25*emb + 0.15*cov, 1)
+    score = int(round(display_total))
+
     color = "#e53935" if score < 50 else "#fb8c00" if score < 70 else "#43a047"
 
     st.markdown(
@@ -156,13 +238,16 @@ if run:
         unsafe_allow_html=True,
     )
 
-    subs = result.get("subscores", {})
+    # Show subscores
     if isinstance(subs, dict) and subs:
         df = pd.DataFrame([{"Area": k, "Score": v} for k, v in subs.items()]).sort_values("Score", ascending=False)
         st.dataframe(df, use_container_width=True, hide_index=True)
+        if fallback_used:
+            st.caption("ℹ️ Skills coverage was adjusted using a lightweight fallback because the original coverage appeared as 0 despite matches.")
     else:
         st.caption("No subscore breakdown available.")
 
+    # Matched vs Missing
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("#### ✅ Matched skills/keywords")
@@ -174,12 +259,13 @@ if run:
         missing_terms = [m["term"] if isinstance(m, dict) and "term" in m else str(m) for m in raw_missing]
         render_chips(missing_terms, ok=False)
 
+    # Suggestions
     st.markdown("#### ✍️ Quick bullet ideas (use only if accurate)")
     suggestions_text = quick_suggestions(raw_missing)
     st.text_area("Copy suggestions", value=suggestions_text, height=170)
-    st.code(suggestions_text, language='markdown')
-    st.button("📋 Copy suggestions to clipboard")
+    copy_to_clipboard_button(suggestions_text)
 
+    # ATS-lite
     if show_ats:
         st.markdown("#### 🧪 ATS-lite checks")
         hints = ats_lite_findings(resume_text)
@@ -189,6 +275,7 @@ if run:
         else:
             st.write("Looks ATS-friendly at a glance.")
 
+    # Download
     if suggestions_text and suggestions_text.strip():
         st.download_button(
             "⬇️ Download suggestions.txt",
@@ -198,6 +285,7 @@ if run:
             use_container_width=True,
         )
 
+    # History
     if show_history:
         st.session_state.history.insert(0, {
             "Time": dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -210,10 +298,14 @@ if run:
         with st.expander("🕘 Recent matches (this session)"):
             st.table(pd.DataFrame(st.session_state.history))
 
+    # Privacy: clear in-memory text
     if privacy:
         resume_text = ""
         suggestions_text = ""
 
+# -------------------------------------------------------------------
+# Footer
+# -------------------------------------------------------------------
 st.markdown("---")
 st.markdown(
     """
@@ -229,49 +321,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-
-
-# st.markdown("---")
-# st.markdown(
-#     """
-#     <div style="text-align: center; font-size: 0.9rem; color: #555;">
-#         Created with ❤️ by <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank" style="color:#6c63ff; text-decoration: none;">Fali Honutse</a> |
-#         <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank" style="color:#6c63ff; text-decoration: none;">My Portfolio</a><br>
-#         Forked and modified from <a href="https://github.com/srbhr/Resume-Matcher" target="_blank" style="color:#888;">srbhr/Resume-Matcher</a> under Apache 2.0 License.
-#     </div>
-#     """,
-#     unsafe_allow_html=True
-# )
-
-# st.markdown("---")
-# st.markdown(
-#     """
-#     <style>
-#     .footer-btn {
-#         display:inline-block;
-#         padding:6px 14px;
-#         margin:4px 6px;
-#         border-radius:20px;
-#         font-size:0.9rem;
-#         font-weight:500;
-#         text-decoration:none;
-#         transition:all 0.2s ease;
-#     }
-#     .footer-btn.portfolio {background:#7C3AED; color:white;}
-#     .footer-btn.linkedin {background:#22D3EE; color:#0F172A;}
-#     .footer-btn:hover {opacity:0.85; transform:translateY(-1px);}
-#     </style>
-
-#     <div style="text-align:center; font-size: 0.95rem; color: #cbd5e1;">
-#         Built with ❤️ to help job seekers<br><br>
-
-#         <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank" class="footer-btn linkedin">LinkedIn</a>
-#         <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank" class="footer-btn portfolio">Portfolio</a>
-
-#         <br><br><span style="color:#94a3b8;">Forked and modified from 
-#         <a href="https://github.com/srbhr/Resume-Matcher" target="_blank" style="color:#94a3b8; text-decoration:none;">srbhr/Resume-Matcher</a> (Apache 2.0 License)</span>
-#     </div>
-#     """,
-#     unsafe_allow_html=True
-# )
