@@ -107,7 +107,7 @@ def ats_lite_findings(resume_txt: str):
         findings.append("Phone number not clearly detected.")
     if not re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", resume_txt):
         findings.append("Email address not clearly detected.")
-    if not re.search(r"(20\\d{2}|\\bpresent\\b|\\bcurrent\\b)", resume_txt, flags=re.I):
+    if not re.search(r"(20\d{2}|\bpresent\b|\bcurrent\b)", resume_txt, flags=re.I):
         findings.append("Employment dates not obvious (e.g., 2022–2024 / Present).")
     return findings
 
@@ -119,6 +119,9 @@ def render_chips(items, ok=True):
     st.markdown(chips_html, unsafe_allow_html=True)
 
 def quick_suggestions(missing_terms):
+    if not missing_terms:
+        return "No suggestions — strong match."
+    
     out = []
     templates = [
         "Implemented {term} to improve reporting speed by X%.",
@@ -126,32 +129,97 @@ def quick_suggestions(missing_terms):
         "Analyzed {term} data to inform decisions, resulting in measurable impact.",
         "Automated {term}-related tasks using Python, cutting cycle time by X%."
     ]
-    for i, t in enumerate(missing_terms[:12]):
-        term = t["term"] if isinstance(t, dict) and "term" in t else str(t)
-        out.append(f"• {templates[i % len(templates)].format(term=term)}")
-    return "\n".join(out) if out else "No suggestions — strong match."
+    
+    # Take only the first 12 missing terms to avoid overwhelming output
+    limited_terms = missing_terms[:12]
+    
+    for i, term in enumerate(limited_terms):
+        # Handle both string and dict formats
+        if isinstance(term, dict):
+            term_text = term.get("term", term.get("skill", str(term)))
+        else:
+            term_text = str(term)
+        
+        suggestion = templates[i % len(templates)].format(term=term_text)
+        out.append(f"• {suggestion}")
+    
+    return "\n".join(out)
 
-# Simple ontology helpers for display-side fallback
+# Enhanced ontology helpers
 def load_ontology_terms(path: Path):
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-        if isinstance(data, dict) and "skills" in data:
-            return [str(s).lower() for s in data["skills"]]
-        if isinstance(data, list):
-            return [str(s).lower() for s in data]
-    except Exception:
-        pass
-    return []
+        terms = []
+        
+        if isinstance(data, dict):
+            if "skills" in data:
+                skills = data["skills"]
+                if isinstance(skills, list):
+                    terms = [str(s).lower().strip() for s in skills if s]
+                elif isinstance(skills, dict):
+                    # Handle nested skill categories
+                    for category, skill_list in skills.items():
+                        if isinstance(skill_list, list):
+                            terms.extend([str(s).lower().strip() for s in skill_list if s])
+            else:
+                # Try to extract from any list values in the dict
+                for value in data.values():
+                    if isinstance(value, list):
+                        terms.extend([str(s).lower().strip() for s in value if s])
+        elif isinstance(data, list):
+            terms = [str(s).lower().strip() for s in data if s]
+        
+        # Remove empty strings and duplicates
+        return list(set([t for t in terms if t]))
+        
+    except Exception as e:
+        st.error(f"Error loading ontology: {e}")
+        return []
 
 def extract_skills_simple(text: str, terms):
-    t = (text or "").lower()
+    if not text or not terms:
+        return set()
+        
+    t = text.lower()
     # Normalize common variants
-    t = t.replace("scikit learn", "scikit-learn")
+    normalizations = {
+        "scikit learn": "scikit-learn",
+        "sci-kit learn": "scikit-learn", 
+        "sklearn": "scikit-learn",
+        "tensorflow": "tensorflow",
+        "tensor flow": "tensorflow",
+        "pytorch": "pytorch",
+        "torch": "pytorch",  # Be careful with this one
+        "powerbi": "power bi",
+        "power-bi": "power bi",
+        "nodejs": "node.js",
+        "node js": "node.js",
+        "reactjs": "react",
+        "react js": "react"
+    }
+    
+    for old, new in normalizations.items():
+        t = t.replace(old, new)
+    
     found = set()
     for term in terms:
-        if re.search(rf"(?<!\\w){re.escape(term)}(?!\\w)", t):
+        # Use word boundaries for better matching
+        pattern = rf"\b{re.escape(term)}\b"
+        if re.search(pattern, t, re.IGNORECASE):
             found.add(term)
+    
     return found
+
+def find_missing_skills(jd_text, resume_text, ontology_terms):
+    """Find skills that are in JD but not in resume"""
+    if not jd_text or not resume_text or not ontology_terms:
+        return []
+    
+    jd_skills = extract_skills_simple(jd_text, ontology_terms)
+    resume_skills = extract_skills_simple(resume_text, ontology_terms)
+    missing = jd_skills - resume_skills
+    
+    return list(missing)
 
 # Real copy-to-clipboard button
 def copy_to_clipboard_button(text: str, label="📋 Copy suggestions to clipboard"):
@@ -194,18 +262,35 @@ if run:
     # ---------------- Results ----------------
     st.markdown("### 📊 Match Results")
 
+    # Load ontology terms for improved missing skill detection
+    ontology_terms = load_ontology_terms(ONTOLOGY_PATH) if ONTOLOGY_PATH.exists() else []
+
     # Subscores & potential fallback coverage
     subs = result.get("subscores", {}) or {}
     skills_cov = subs.get("skills_coverage", 0)
     aligned = [s for s in result.get("aligned_skills", []) if s]
+    
+    # Get missing skills from result, but also compute our own
+    raw_missing = result.get("missing_skills", [])
+    
+    # Compute missing skills using ontology
+    computed_missing = []
+    if ontology_terms:
+        computed_missing = find_missing_skills(jd_text_clean, resume_text, ontology_terms)
+    
+    # Use computed missing if the original is empty or seems wrong
+    if not raw_missing and computed_missing:
+        raw_missing = computed_missing
+    elif len(computed_missing) > len(raw_missing):
+        # If we found more missing skills, use the computed ones
+        raw_missing = computed_missing
 
     # If coverage is 0 but we clearly matched terms, compute a display-side fallback
     fallback_used = False
-    if skills_cov == 0 and aligned:
-        terms = load_ontology_terms(ONTOLOGY_PATH) if ONTOLOGY_PATH.exists() else []
-        if terms:
-            jd_terms = extract_skills_simple(jd_text_clean, terms)
-            res_terms = extract_skills_simple(resume_text, terms)
+    if skills_cov == 0 and (aligned or ontology_terms):
+        if ontology_terms:
+            jd_terms = extract_skills_simple(jd_text_clean, ontology_terms)
+            res_terms = extract_skills_simple(resume_text, ontology_terms)
             inter = jd_terms & res_terms
             denom = len(jd_terms) or 1
             fallback_cov = round(100 * len(inter) / denom, 1)
@@ -247,21 +332,41 @@ if run:
     else:
         st.caption("No subscore breakdown available.")
 
+    # Extract missing terms properly
+    missing_terms = []
+    for m in raw_missing:
+        if isinstance(m, dict):
+            # Try different possible keys
+            term = m.get("term") or m.get("skill") or m.get("name") or str(m)
+        else:
+            term = str(m)
+        if term and term != "{}":  # Avoid empty or string representations of empty dict
+            missing_terms.append(term)
+
     # Matched vs Missing
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("#### ✅ Matched skills/keywords")
-        matched = result.get("aligned_skills", [])
-        render_chips(matched, ok=True)
+        render_chips(aligned, ok=True)
     with c2:
         st.markdown("#### ⚠ Missing or weakly covered")
-        raw_missing = result.get("missing_skills", [])
-        missing_terms = [m["term"] if isinstance(m, dict) and "term" in m else str(m) for m in raw_missing]
         render_chips(missing_terms, ok=False)
+
+    # Debug info (remove in production)
+    if st.sidebar.checkbox("Show debug info", value=False):
+        st.markdown("#### 🐛 Debug Info")
+        st.write(f"Ontology terms loaded: {len(ontology_terms)}")
+        st.write(f"Raw missing from result: {raw_missing[:5]}...")  # Show first 5
+        st.write(f"Processed missing terms: {missing_terms[:10]}")  # Show first 10
+        if ontology_terms:
+            jd_skills = extract_skills_simple(jd_text_clean, ontology_terms)
+            resume_skills = extract_skills_simple(resume_text, ontology_terms)
+            st.write(f"JD skills found: {len(jd_skills)}")
+            st.write(f"Resume skills found: {len(resume_skills)}")
 
     # Suggestions
     st.markdown("#### ✍️ Quick bullet ideas (use only if accurate)")
-    suggestions_text = quick_suggestions(raw_missing)
+    suggestions_text = quick_suggestions(missing_terms)
     st.text_area("Copy suggestions", value=suggestions_text, height=170)
     copy_to_clipboard_button(suggestions_text)
 
@@ -276,7 +381,7 @@ if run:
             st.write("Looks ATS-friendly at a glance.")
 
     # Download
-    if suggestions_text and suggestions_text.strip():
+    if suggestions_text and suggestions_text.strip() and suggestions_text != "No suggestions — strong match.":
         st.download_button(
             "⬇️ Download suggestions.txt",
             data=suggestions_text.encode("utf-8"),
@@ -290,7 +395,7 @@ if run:
         st.session_state.history.insert(0, {
             "Time": dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
             "Score": score,
-            "Matched": len(result.get("aligned_skills", [])),
+            "Matched": len(aligned),
             "Missing": len(missing_terms),
             "Resume": resume_file.name,
         })
