@@ -52,7 +52,7 @@ DARK_THEME_CSS = """
 /* Compact fixed nav (smaller) */
 .nav-container{
   display:flex; justify-content:space-between; align-items:center;
-  padding:.55rem 1.1rem;                  /* compact */
+  padding:.35rem 1rem;                  /* compact */
   background:rgba(26,26,46,.92);
   backdrop-filter: blur(8px);
   border-bottom:1px solid rgba(255,255,255,.08);
@@ -65,7 +65,7 @@ DARK_THEME_CSS = """
 .nav-link:hover{background:rgba(255,255,255,.12); color:#fff}
 
 /* Main content: pad for nav height; remove first-child margins */
-.main-content{ padding-top:56px; min-height:100vh; }
+.main-content{ padding-top:50px; min-height:100vh; }
 .main-content > *:first-child { margin-top: 0 !important; }
 .block-container > div:first-child { margin-top: 0 !important; }
 
