@@ -1,4 +1,4 @@
-# streamlit_app.py — Modern Resume Matcher with Dark Theme
+# streamlit_app.py — Modern Resume Matcher (compact header, single page, about blurb, footer)
 
 import sys
 import os
@@ -30,406 +30,151 @@ except Exception:
 # -------------------------------------------------------------------
 ONTOLOGY_PATH = Path(__file__).resolve().parents[2] / "data" / "skills_ontology.json"
 st.set_page_config(
-    page_title="Resume Matcher - AI-Powered Resume Analysis", 
-    page_icon="✨", 
+    page_title="Resume Matcher - AI-Powered Resume Analysis",
+    page_icon="✨",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 # -------------------------------------------------------------------
-# Dark Modern Theme CSS
+# Dark Modern Theme CSS (compacted header + smaller hero)
 # -------------------------------------------------------------------
 DARK_THEME_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Global Styles */
-.stApp {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    font-family: 'Inter', sans-serif;
-    color: #ffffff;
+/* Global */
+.stApp{
+  background: linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+  font-family: 'Inter', sans-serif; color:#fff;
 }
 
-/* Navigation */
-.nav-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem 3rem;
-    background: rgba(26, 26, 46, 0.9);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
+/* Compact fixed nav */
+.nav-container{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:.75rem 1.5rem;               /* ↓ smaller */
+  background:rgba(26,26,46,.92);
+  backdrop-filter: blur(8px);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  position:fixed; inset:0 0 auto 0; z-index:1000;
+}
+.logo{display:flex; align-items:center; font-size:1.25rem; font-weight:800; letter-spacing:.5px}
+.logo-icon{color:#e91e63; margin-right:.5rem; font-size:1.5rem}
+.nav-links{display:flex; gap:1rem}
+.nav-link{color:rgba(255,255,255,.85); text-decoration:none; font-weight:600; padding:.4rem .9rem; border-radius:10px}
+.nav-link:hover{background:rgba(255,255,255,.12); color:#fff}
+
+/* Main content: pad only as much as nav height */
+.main-content{ padding-top:72px; min-height:100vh; } /* ↓ from 100px */
+
+/* Hero (smaller top/bottom padding) */
+.hero-section{
+  text-align:center; padding:2.25rem 1rem 1.25rem;  /* ↓ from 4rem 2rem 2rem */
+  max-width:1200px; margin:0 auto;
+}
+.tagline{color:#e91e63; font-size:1rem; font-weight:600; margin-bottom:1rem; font-style:italic}
+.hero-title{font-size:3rem; font-weight:800; margin:.25rem 0 1rem; line-height:1.12}
+.hero-title-gradient{
+  background: linear-gradient(135deg,#ffffff 0%,#e91e63 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.hero-subtitle{font-size:1.2rem; color:rgba(255,255,255,.85); margin-bottom:.75rem}
+.hero-description{font-size:1rem; color:rgba(255,255,255,.75); max-width:900px; margin:0 auto 1.25rem; line-height:1.55}
+
+/* About blurb card (brief, on landing) */
+.about-blurb{
+  max-width:1000px; margin:0 auto 1.5rem; padding:1rem 1.25rem;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); border-radius:16px;
+  color:rgba(255,255,255,.9); line-height:1.55;
 }
 
-.logo {
-    display: flex;
-    align-items: center;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #ffffff;
-    text-decoration: none;
+/* Upload card */
+.upload-card{
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  border-radius:24px; padding:2rem; margin:1.25rem auto; max-width:1000px;
+  backdrop-filter: blur(8px); box-shadow:0 16px 34px rgba(0,0,0,.28);
 }
+.upload-title{text-align:center; font-size:1.6rem; font-weight:800; margin-bottom:1.25rem}
 
-.logo-icon {
-    color: #e91e63;
-    margin-right: 0.5rem;
-    font-size: 1.8rem;
+/* Score */
+.score-container{
+  background: linear-gradient(135deg,#22c55e 0%,#16a34a 100%);
+  border-radius:24px; padding:2.5rem; text-align:center; color:#fff;
+  margin:1.25rem auto 1.5rem; max-width:600px; box-shadow:0 18px 36px rgba(22,163,74,.28);
 }
+.score-number{font-size:4rem; font-weight:900; margin-bottom:.3rem}
+.score-label{font-size:1.2rem; font-weight:700; opacity:.95; margin-bottom:.25rem}
+.score-description{font-size:1rem; opacity:.92; max-width:480px; margin:0 auto; line-height:1.5}
 
-.nav-links {
-    display: flex;
-    gap: 2rem;
+/* Metric cards */
+.metrics-grid{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:1.25rem; max-width:1000px; margin:1.5rem auto;
 }
-
-.nav-link {
-    color: rgba(255, 255, 255, 0.8);
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+.metric-card{
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  border-radius:18px; padding:1.25rem; text-align:center; backdrop-filter:blur(8px);
+  transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
 }
+.metric-card:hover{ transform:translateY(-6px); border-color:rgba(233,30,99,.28); box-shadow:0 14px 28px rgba(0,0,0,.22) }
+.metric-value{font-size:2rem; font-weight:900; color:#e91e63; margin-bottom:.25rem}
+.metric-title{font-size:1rem; font-weight:800}
+.metric-description{font-size:.92rem; color:rgba(255,255,255,.75)}
 
-.nav-link:hover, .nav-link.active {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.1);
+/* Skills */
+.skills-section{
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+  border-radius:18px; padding:1.25rem; margin:1.5rem auto; max-width:1000px;
 }
-
-/* Main Content */
-.main-content {
-    padding-top: 100px;
-    min-height: 100vh;
+.skills-title{font-size:1.2rem; font-weight:900; text-align:center; margin-bottom:.75rem}
+.skills-count{color:#e91e63; font-weight:800}
+.skills-grid{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:1rem}
+.skill-chip{
+  background:linear-gradient(135deg,#e91e63 0%,#f06292 100%); color:#fff; padding:7px 14px;
+  border-radius:26px; font-size:.9rem; font-weight:700; border:none; box-shadow:0 4px 14px rgba(233,30,99,.3);
+  transition:transform .2s ease;
 }
+.skill-chip:hover{ transform:translateY(-2px) }
 
-.hero-section {
-    text-align: center;
-    padding: 4rem 2rem 2rem 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
+/* Inputs */
+.stFileUploader > div{
+  background:rgba(255,255,255,.05); border:2px dashed rgba(255,255,255,.3);
+  border-radius:16px; padding:1.25rem; text-align:center;
 }
-
-.tagline {
-    color: #e91e63;
-    font-size: 1.1rem;
-    font-weight: 500;
-    margin-bottom: 2rem;
-    font-style: italic;
+.stTextArea > div > div > textarea{
+  background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.2);
+  border-radius:16px; color:#fff; font-family:'Inter',sans-serif;
 }
+.stTextArea > div > div > textarea:focus{ border-color:#e91e63; box-shadow:0 0 0 3px rgba(233,30,99,.2) }
 
-.hero-title {
-    font-size: 4rem;
-    font-weight: 800;
-    margin-bottom: 1.5rem;
-    line-height: 1.1;
-}
-
-.hero-title-gradient {
-    background: linear-gradient(135deg, #ffffff 0%, #e91e63 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.hero-subtitle {
-    font-size: 1.4rem;
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: 400;
-    margin-bottom: 2rem;
-}
-
-.hero-description {
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.7);
-    max-width: 800px;
-    margin: 0 auto 3rem auto;
-    line-height: 1.6;
-}
-
-/* Cards */
-.upload-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    padding: 3rem;
-    margin: 2rem auto;
-    max-width: 1000px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
-
-.upload-title {
-    text-align: center;
-    font-size: 2rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 2rem;
-}
-
-/* Score Display */
-.score-container {
-    background: linear-gradient(135deg, #e91e63 0%, #f06292 100%);
-    border-radius: 24px;
-    padding: 4rem;
-    text-align: center;
-    color: white;
-    margin: 2rem auto;
-    max-width: 600px;
-    box-shadow: 0 20px 40px rgba(233, 30, 99, 0.3);
-    transform: translateY(-20px);
-}
-
-.score-number {
-    font-size: 5rem;
-    font-weight: 800;
-    margin-bottom: 1rem;
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-
-.score-label {
-    font-size: 1.5rem;
-    opacity: 0.95;
-    font-weight: 600;
-    margin-bottom: 1rem;
-}
-
-.score-description {
-    font-size: 1.1rem;
-    opacity: 0.9;
-    max-width: 400px;
-    margin: 0 auto;
-    line-height: 1.5;
-}
-
-/* Metric Cards */
-.metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-    margin: 3rem 0;
-    max-width: 1000px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.metric-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 2rem;
-    text-align: center;
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-}
-
-.metric-card:hover {
-    transform: translateY(-10px);
-    border-color: rgba(233, 30, 99, 0.3);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-}
-
-.metric-value {
-    font-size: 2.5rem;
-    font-weight: 800;
-    color: #e91e63;
-    margin-bottom: 0.5rem;
-}
-
-.metric-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 0.5rem;
-}
-
-.metric-description {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-    line-height: 1.4;
-}
-
-/* Skills Section */
-.skills-section {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 2rem;
-    margin: 3rem auto;
-    max-width: 1000px;
-}
-
-.skills-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 1.5rem;
-    text-align: center;
-}
-
-.skills-count {
-    color: #e91e63;
-    font-weight: 700;
-}
-
-.skills-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-    margin-top: 1.5rem;
-}
-
-.skill-chip {
-    background: linear-gradient(135deg, #e91e63 0%, #f06292 100%);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 50px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border: none;
-    box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
-    transition: all 0.3s ease;
-}
-
-.skill-chip:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(233, 30, 99, 0.4);
-}
-
-/* Buttons */
-.cta-button {
-    background: linear-gradient(135deg, #e91e63 0%, #f06292 100%);
-    color: white;
-    border: none;
-    border-radius: 50px;
-    padding: 1.2rem 3rem;
-    font-size: 1.2rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 8px 25px rgba(233, 30, 99, 0.4);
-    text-decoration: none;
-    display: inline-block;
-    margin: 1rem;
-}
-
-.cta-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 15px 35px rgba(233, 30, 99, 0.6);
-}
-
-/* About Page */
-.about-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-}
-
-.about-title {
-    font-size: 3rem;
-    font-weight: 800;
-    text-align: center;
-    margin-bottom: 2rem;
-    background: linear-gradient(135deg, #ffffff 0%, #e91e63 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.about-text {
-    font-size: 1.2rem;
-    line-height: 1.8;
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 2rem;
-    text-align: center;
-}
-
-.about-links {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin-top: 3rem;
-}
-
-.about-link {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.about-link:hover {
-    background: rgba(233, 30, 99, 0.2);
-    border-color: rgba(233, 30, 99, 0.5);
-    transform: translateY(-2px);
-}
-
-/* Hide Streamlit elements */
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
-.stDeployButton {display: none;}
+/* Hide Streamlit default chrome we don't need */
+#MainMenu{visibility:hidden} footer{visibility:hidden} header{visibility:hidden} .stDeployButton{display:none}
 .stAppViewContainer > .main > div > div > div > div {background: transparent;}
-
-/* File uploader styling */
-.stFileUploader > div {
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px dashed rgba(255, 255, 255, 0.3);
-    border-radius: 16px;
-    padding: 2rem;
-    text-align: center;
-}
-
-.stTextArea > div > div > textarea {
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    color: white;
-    font-family: 'Inter', sans-serif;
-}
-
-.stTextArea > div > div > textarea:focus {
-    border-color: #e91e63;
-    box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.2);
-}
 </style>
 """
-
 st.markdown(DARK_THEME_CSS, unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# Navigation
+# Compact Top Bar (no Home/About pages)
 # -------------------------------------------------------------------
 def render_navigation():
     st.markdown("""
     <div class="nav-container">
-        <div class="logo">
-            <span class="logo-icon">✨</span>
-            RESUME MATCHER
-        </div>
+        <div class="logo"><span class="logo-icon">✨</span>RESUME MATCHER</div>
         <div class="nav-links">
-            <a href="?page=home" class="nav-link">Home</a>
-            <a href="?page=about" class="nav-link">About</a>
             <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank" class="nav-link">Portfolio</a>
             <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank" class="nav-link">LinkedIn</a>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
+render_navigation()
+
 # -------------------------------------------------------------------
-# Helper Functions
+# Helpers
 # -------------------------------------------------------------------
 def extract_resume_text(uploaded_file) -> str:
-    if not uploaded_file:
-        return ""
+    if not uploaded_file: return ""
     name = uploaded_file.name.lower()
     try:
         if name.endswith(".pdf") and pdf_extract:
@@ -443,215 +188,155 @@ def extract_resume_text(uploaded_file) -> str:
 
 def render_skills_chips(skills):
     if not skills:
-        return "<p style='text-align: center; color: rgba(255,255,255,0.6);'>No skills detected</p>"
-    
-    chips_html = "<div class='skills-grid'>"
-    for skill in skills[:20]:
-        chips_html += f"<span class='skill-chip'>✓ {skill}</span>"
-    chips_html += "</div>"
-    return chips_html
+        return "<p style='text-align:center;color:rgba(255,255,255,.65);'>No skills detected</p>"
+    chips = "<div class='skills-grid'>"
+    for s in skills[:20]:
+        chips += f"<span class='skill-chip'>✓ {s}</span>"
+    chips += "</div>"
+    return chips
 
 # -------------------------------------------------------------------
-# Page Routing
+# Single-page App
 # -------------------------------------------------------------------
-query_params = st.query_params
-page = query_params.get("page", "home")
+st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
-# Render navigation
-render_navigation()
+# Session state
+if "analysis_done" not in st.session_state:
+    st.session_state.analysis_done = False
 
-# -------------------------------------------------------------------
-# About Page
-# -------------------------------------------------------------------
-if page == "about":
-    st.markdown('<div class="main-content">', unsafe_allow_html=True)
+# Hero
+if not st.session_state.analysis_done:
     st.markdown("""
-    <div class="about-container">
-        <h1 class="about-title">About Resume Matcher</h1>
-        
-        <p class="about-text">
-            Resume Matcher is an AI-powered tool designed to help job seekers optimize their resumes 
-            for specific job opportunities. By analyzing the compatibility between your resume and job 
-            descriptions, we provide data-driven insights to improve your chances of landing interviews.
+    <div class="hero-section">
+        <p class="tagline">Unlock Interview Opportunities with Resume Matcher</p>
+        <h1 class="hero-title">
+            Craft a Resume That<br>
+            <span class="hero-title-gradient">Lands Interviews</span>
+        </h1>
+        <p class="hero-subtitle">Know exactly how well your resume fits the roles you want.</p>
+        <p class="hero-description">
+            Upload your resume and the job description. Resume Matcher analyzes keyword alignment,
+            evidence quality, content similarity, and skills coverage—giving you a clear score
+            and the exact keywords to strengthen.
         </p>
-        
-        <p class="about-text">
-            Our advanced algorithm evaluates keyword alignment, content similarity, evidence quality, 
-            and skills coverage to give you a comprehensive match score. Whether you're a recent graduate 
-            or an experienced professional, Resume Matcher helps you tailor your application materials 
-            for maximum impact.
-        </p>
-        
-        <p class="about-text">
-            Built with cutting-edge natural language processing and machine learning technologies, 
-            our platform ensures accurate analysis while maintaining your privacy and data security.
-        </p>
-        
-        <div class="about-links">
-            <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank" class="about-link">
-                View Portfolio
-            </a>
-            <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank" class="about-link">
-                Connect on LinkedIn  
-            </a>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # About blurb (on landing, short)
+    st.markdown("""
+    <div class="about-blurb">
+        <strong>What is this?</strong> Resume Matcher is a free, open-source tool built to help job seekers tailor
+        their resumes quickly and confidently. Your documents are processed in memory, and we don’t store them.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Upload section
+    st.markdown('<div class="upload-card"><div class="upload-title">Upload Your Documents</div></div>', unsafe_allow_html=True)
+    c1, c2 = st.columns(2, gap="large")
+    with c1:
+        st.markdown("### 📄 Resume")
+        resume_file = st.file_uploader("Upload your resume", type=["pdf","docx","txt"], label_visibility="collapsed",
+                                       help="Supported formats: PDF, DOCX, TXT")
+    with c2:
+        st.markdown("### 📋 Job Description")
+        jd_text = st.text_area("Paste the job description here", height=200, label_visibility="collapsed",
+                               placeholder="Paste the complete job description here...")
+
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    _, cbtn, _ = st.columns([1,2,1])
+    with cbtn:
+        if st.button("Try Resume Matcher", type="primary", use_container_width=True):
+            if not resume_file or not jd_text.strip():
+                st.error("Please upload both a resume and job description to continue.")
+            else:
+                with st.spinner("Analyzing your resume match..."):
+                    jd_text_clean = clean_text(jd_text or "")
+                    resume_text = extract_resume_text(resume_file)
+                    if not resume_text:
+                        st.error("Could not extract text from your resume. Please try a different format.")
+                        st.stop()
+                    result = compute_score(resume_text, jd_text_clean, ONTOLOGY_PATH)
+                    st.session_state.analysis_result = result
+                    st.session_state.analysis_done = True
+                    st.session_state.resume_name = resume_file.name
+                    st.rerun()
+
+# Results
+if st.session_state.analysis_done and "analysis_result" in st.session_state:
+    result = st.session_state.analysis_result
+    subs = result.get("subscores", {}) or {}
+    kw  = subs.get("keyword_alignment", 0)
+    ev  = subs.get("evidence", 0)
+    emb = subs.get("embedding_similarity", 0)
+    cov = subs.get("skills_coverage", 0)
+
+    overall = round(0.30*kw + 0.30*ev + 0.25*emb + 0.15*cov, 1)
+    score_i = int(round(overall))
+
+    st.markdown(f"""
+    <div class="score-container" style="background: linear-gradient(135deg, {'#22c55e' if score_i>=70 else '#f59e0b' if score_i>=40 else '#ef4444'} 0%, {'#16a34a' if score_i>=70 else '#d97706' if score_i>=40 else '#b91c1c'} 100%);">
+        <div class="score-number">{score_i}%</div>
+        <div class="score-label">Resume Match Score</div>
+        <div class="score-description">
+            {"Your resume aligns exceptionally well with this job opportunity!" if score_i >= 80
+            else "Good match! Consider minor improvements for better alignment." if score_i >= 60
+            else "Room for improvement. Focus on adding relevant skills and experience." if score_i >= 40
+            else "Significant improvements needed. Consider major updates before applying."}
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown('<div class="metrics-grid">', unsafe_allow_html=True)
+    for title, value, desc in [
+        ("Keyword Alignment", kw,  "How well your resume keywords match job requirements"),
+        ("Evidence Quality",  ev,  "Strength of examples and achievements in your resume"),
+        ("Content Similarity", emb, "Overall semantic similarity with job description"),
+        ("Skills Coverage",   cov, "Percentage of required skills present in your resume"),
+    ]:
+      st.markdown(f"""
+      <div class="metric-card">
+        <div class="metric-value">{value:.1f}%</div>
+        <div class="metric-title">{title}</div>
+        <div class="metric-description">{desc}</div>
+      </div>
+      """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -------------------------------------------------------------------
-# Home Page
-# -------------------------------------------------------------------
-else:
-    st.markdown('<div class="main-content">', unsafe_allow_html=True)
-    
-    # Initialize session state
-    if "analysis_done" not in st.session_state:
-        st.session_state.analysis_done = False
-
-    # Hero Section
-    if not st.session_state.analysis_done:
-        st.markdown("""
-        <div class="hero-section">
-            <p class="tagline">Unlock Interview Opportunities with Resume Matcher</p>
-            <h1 class="hero-title">
-                Craft a Resume That<br>
-                <span class="hero-title-gradient">Lands Interviews</span>
-            </h1>
-            <p class="hero-subtitle">
-                Know exactly how well your resume fits the roles you want.
-            </p>
-            <p class="hero-description">
-                Empower your job search with Resume Matcher. Upload your resume and the job description, 
-                and let Resume Matcher reveal your compatibility score and crucial keywords. 
-                Optimize smarter, tailor faster, and take control of your application process.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Upload Section
-        st.markdown("""
-        <div class="upload-card">
-            <h2 class="upload-title">Upload Your Documents</h2>
-        </div>
-        """, unsafe_allow_html=True)
-
-        col1, col2 = st.columns(2, gap="large")
-        
-        with col1:
-            st.markdown("### 📄 Resume")
-            resume_file = st.file_uploader(
-                "Upload your resume", 
-                type=["pdf", "docx", "txt"], 
-                help="Supported formats: PDF, DOCX, TXT",
-                label_visibility="collapsed"
-            )
-            
-        with col2:
-            st.markdown("### 📋 Job Description")
-            jd_text = st.text_area(
-                "Paste the job description here", 
-                height=200, 
-                placeholder="Paste the complete job description here...",
-                label_visibility="collapsed"
-            )
-
-        # Analyze button
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("Try Resume Matcher", type="primary", use_container_width=True):
-                if not resume_file or not jd_text.strip():
-                    st.error("Please upload both a resume and job description to continue.")
-                else:
-                    with st.spinner("Analyzing your resume match..."):
-                        jd_text_clean = clean_text(jd_text or "")
-                        resume_text = extract_resume_text(resume_file)
-                        
-                        if not resume_text:
-                            st.error("Could not extract text from your resume. Please try a different format.")
-                            st.stop()
-
-                        result = compute_score(resume_text, jd_text_clean, ONTOLOGY_PATH)
-                        
-                        st.session_state.analysis_result = result
-                        st.session_state.analysis_done = True
-                        st.session_state.resume_name = resume_file.name
-                        st.rerun()
-
-    # Results Section
-    if st.session_state.analysis_done and "analysis_result" in st.session_state:
-        result = st.session_state.analysis_result
-        
-        # Calculate overall score
-        subs = result.get("subscores", {}) or {}
-        kw = subs.get("keyword_alignment", 0)
-        ev = subs.get("evidence", 0) 
-        emb = subs.get("embedding_similarity", 0)
-        cov = subs.get("skills_coverage", 0)
-        
-        overall_score = round(0.30*kw + 0.30*ev + 0.25*emb + 0.15*cov, 1)
-        score_int = int(round(overall_score))
-        
-        # Score Display
+    aligned = result.get("aligned_skills", [])
+    if aligned:
         st.markdown(f"""
-        <div class="score-container">
-            <div class="score-number">{score_int}%</div>
-            <div class="score-label">Resume Match Score</div>
-            <div class="score-description">
-                {"Your resume aligns exceptionally well with this job opportunity!" if score_int >= 80 
-                 else "Good match! Consider minor improvements for better alignment." if score_int >= 60
-                 else "Room for improvement. Focus on adding relevant skills and experience." if score_int >= 40
-                 else "Significant improvements needed. Consider major resume updates."}
-            </div>
+        <div class="skills-section">
+            <div class="skills-title">Matched Skills & Keywords</div>
+            <p style="text-align:center;color:rgba(255,255,255,.85);">
+                <span class="skills-count">{len(aligned)} skills</span> from the job description were found in your resume
+            </p>
+            {render_skills_chips(aligned)}
         </div>
         """, unsafe_allow_html=True)
-        
-        # Detailed Metrics
-        st.markdown("""
-        <div class="metrics-grid">
-        """, unsafe_allow_html=True)
-        
-        metrics_data = [
-            ("Keyword Alignment", kw, "How well your resume keywords match job requirements"),
-            ("Evidence Quality", ev, "Strength of examples and achievements in your resume"),
-            ("Content Similarity", emb, "Overall semantic similarity with job description"),
-            ("Skills Coverage", cov, "Percentage of required skills present in your resume")
-        ]
-        
-        for title, value, description in metrics_data:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-value">{value:.1f}%</div>
-                <div class="metric-title">{title}</div>
-                <div class="metric-description">{description}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Matched Skills
-        aligned_skills = result.get("aligned_skills", [])
-        if aligned_skills:
-            st.markdown(f"""
-            <div class="skills-section">
-                <div class="skills-title">
-                    Matched Skills & Keywords
-                </div>
-                <p style="text-align: center; color: rgba(255,255,255,0.8);">
-                    <span class="skills-count">{len(aligned_skills)} skills</span> from the job description were found in your resume
-                </p>
-                {render_skills_chips(aligned_skills)}
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Action Button
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("Analyze Another Resume", use_container_width=True):
-                st.session_state.analysis_done = False
-                st.session_state.analysis_result = {}
-                st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    _, cbtn2, _ = st.columns([1,2,1])
+    with cbtn2:
+        if st.button("Analyze Another Resume", use_container_width=True):
+            st.session_state.analysis_done = False
+            st.session_state.analysis_result = {}
+            st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)  # end main-content
+
+# -------------------------------------------------------------------
+# Footer (with separators •)
+# -------------------------------------------------------------------
+st.markdown("""
+<hr style="border:none;border-top:1px solid rgba(255,255,255,.18); margin: 1.0rem 0 0.5rem;">
+<div style="text-align:center; color:#cbd5e1; font-size:.98rem; padding:.5rem 0 1.25rem;">
+  Built with ❤️ to help job seekers<br/>
+  Created by <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank" style="color:#22D3EE; text-decoration:none;">Fali Honutse</a>
+  <span style="opacity:.7;"> • </span>
+  <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank" style="color:#22D3EE; text-decoration:none;">Portfolio</a>
+  <br/>
+  <span style="color:#94a3b8;">Forked and modified from
+    <a href="https://github.com/srbhr/Resume-Matcher" target="_blank" style="color:#94a3b8; text-decoration:none;">srbhr/Resume-Matcher</a>
+    (Apache 2.0 License)</span>
+</div>
+""", unsafe_allow_html=True)
