@@ -1,4 +1,4 @@
-# streamlit_app.py — improved UX + accuracy fixes (JD cleaning, ontology guard, coverage fallback)
+# streamlit_app.py — Clean Resume Matcher with Modern Design
 
 import sys
 import os
@@ -29,61 +29,202 @@ except Exception:
 # Paths / Page config
 # -------------------------------------------------------------------
 ONTOLOGY_PATH = Path(__file__).resolve().parents[2] / "data" / "skills_ontology.json"
-st.set_page_config(page_title="Resume ⇄ JD Match Tool", page_icon="🧠", layout="wide")
-
-# -------------------------------------------------------------------
-# Styles (chips + score bar)
-# -------------------------------------------------------------------
-CHIP_CSS = """
-<style>
-.chip { display:inline-block; padding:6px 10px; margin:4px 6px 0 0; border-radius:16px; font-size:0.85rem; border:1px solid rgba(0,0,0,0.06) }
-.chip.ok { background:#e8f5e9; color:#1b5e20; border-color:#c8e6c9; }
-.chip.miss { background:#fff3e0; color:#bf360c; border-color:#ffe0b2; }
-.scorebar { height:10px; border-radius:8px; background:#eee; overflow:hidden; }
-.scorefill { height:10px; border-radius:8px; }
-.small { color:#666; font-size:0.85rem; }
-</style>
-"""
-st.markdown(CHIP_CSS, unsafe_allow_html=True)
-
-# -------------------------------------------------------------------
-# Hero
-# -------------------------------------------------------------------
-st.markdown(
-    """
-<div style="padding:1.6rem; background:linear-gradient(90deg,#2c3e50,#8e44ad); border-radius:16px; text-align:center; margin-bottom:1rem">
-  <h1 style="color:#fff; margin:0 0 .3rem 0">🧠 Resume Matcher</h1>
-  <p style="color:#e6e6e6; margin:0">No more guessing — see how well your resume matches the job description.</p>
-</div>
-""",
-    unsafe_allow_html=True
+st.set_page_config(
+    page_title="Resume Matcher - AI-Powered Resume Analysis", 
+    page_icon="🎯", 
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 # -------------------------------------------------------------------
-# Sidebar
+# Modern Styles
 # -------------------------------------------------------------------
-with st.sidebar:
-    st.header("Options")
-    privacy = st.checkbox("Delete processed text after scoring (privacy-first)", value=True)
-    show_ats = st.checkbox("Run ATS-lite checks", value=True)
-    show_history = st.checkbox("Keep session history (last 5)", value=True)
-    st.caption("We do not store your documents by default. Keep the Apache-2.0 license & attribution from the base repo.")
+MODERN_CSS = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-# Warn early if ontology is missing (prevents confusing 0 coverage)
-if not ONTOLOGY_PATH.exists():
-    st.warning("Skills ontology not found at: " + str(ONTOLOGY_PATH) + " — coverage metrics may be inaccurate.")
+.stApp {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: 'Inter', sans-serif;
+}
+
+.main-container {
+    background: white;
+    border-radius: 20px;
+    padding: 3rem;
+    margin: 2rem auto;
+    max-width: 1200px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.hero-section {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: #6b7280;
+    font-weight: 400;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.upload-section {
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 2rem;
+    margin: 2rem 0;
+    border: 2px dashed #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.upload-section:hover {
+    border-color: #667eea;
+    background: #f1f5ff;
+}
+
+.score-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 3rem;
+    text-align: center;
+    color: white;
+    margin: 2rem 0;
+    box-shadow: 0 15px 30px rgba(102, 126, 234, 0.3);
+}
+
+.score-number {
+    font-size: 4rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+}
+
+.score-label {
+    font-size: 1.25rem;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.metric-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 1rem;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #667eea;
+}
+
+.chip { 
+    display: inline-block; 
+    padding: 8px 16px; 
+    margin: 6px 8px 6px 0; 
+    border-radius: 50px; 
+    font-size: 0.9rem; 
+    font-weight: 500;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
+.skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.cta-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 1rem 3rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.footer {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.footer a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+/* Hide Streamlit default elements */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+.stDeployButton {display: none;}
+
+/* Custom file uploader */
+.stFileUploader > div > div > div {
+    background: transparent;
+    border: none;
+}
+
+.stTextArea > div > div > textarea {
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    font-family: 'Inter', sans-serif;
+}
+
+.stTextArea > div > div > textarea:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+</style>
+"""
+
+st.markdown(MODERN_CSS, unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# Inputs
-# -------------------------------------------------------------------
-col1, col2 = st.columns(2)
-with col1:
-    resume_file = st.file_uploader("📄 Upload Resume (PDF / DOCX / TXT)", type=["pdf", "docx", "txt"], help="Prefer a one-column ATS-friendly layout.")
-with col2:
-    jd_text = st.text_area("📋 Paste Job Description", height=280, placeholder="Paste the full job description here…")
-
-# -------------------------------------------------------------------
-# Helpers
+# Helper Functions
 # -------------------------------------------------------------------
 def extract_resume_text(uploaded_file) -> str:
     if not uploaded_file:
@@ -99,330 +240,181 @@ def extract_resume_text(uploaded_file) -> str:
         st.error(f"Could not read the resume: {e}. Try uploading a different format.")
         return ""
 
-def ats_lite_findings(resume_txt: str):
-    findings = []
-    if re.search(r"\b(table|grid|columns?)\b", resume_txt, flags=re.I):
-        findings.append("Layout may include tables/columns — some ATS parsers can misread complex layouts.")
-    if not re.search(r"\b(?:\+?\d[\d\-\s\(\)]{7,})\b", resume_txt):
-        findings.append("Phone number not clearly detected.")
-    if not re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", resume_txt):
-        findings.append("Email address not clearly detected.")
-    if not re.search(r"(20\d{2}|\bpresent\b|\bcurrent\b)", resume_txt, flags=re.I):
-        findings.append("Employment dates not obvious (e.g., 2022–2024 / Present).")
-    return findings
+def render_skills_chips(skills):
+    if not skills:
+        return "<p style='text-align: center; color: #6b7280;'>No skills detected</p>"
+    
+    chips_html = "<div class='skills-grid'>"
+    for skill in skills[:20]:  # Limit to first 20 skills
+        chips_html += f"<span class='chip'>✓ {skill}</span>"
+    chips_html += "</div>"
+    return chips_html
 
-def render_chips(items, ok=True):
-    css = "ok" if ok else "miss"
-    if not items:
-        return st.caption("None detected.")
-    chips_html = "".join([f"<span class='chip {css}'>" + ("✅ " if ok else "⚠ ") + str(it) + "</span>" for it in items])
-    st.markdown(chips_html, unsafe_allow_html=True)
-
-def quick_suggestions(missing_terms):
-    if not missing_terms:
-        return "No suggestions — strong match."
-    
-    out = []
-    templates = [
-        "Implemented {term} to improve reporting speed by X%.",
-        "Built {term} workflows for stakeholders, reducing manual effort by X%.",
-        "Analyzed {term} data to inform decisions, resulting in measurable impact.",
-        "Automated {term}-related tasks using Python, cutting cycle time by X%."
-    ]
-    
-    # Take only the first 12 missing terms to avoid overwhelming output
-    limited_terms = missing_terms[:12]
-    
-    for i, term in enumerate(limited_terms):
-        # Handle both string and dict formats
-        if isinstance(term, dict):
-            term_text = term.get("term", term.get("skill", str(term)))
-        else:
-            term_text = str(term)
-        
-        suggestion = templates[i % len(templates)].format(term=term_text)
-        out.append(f"• {suggestion}")
-    
-    return "\n".join(out)
-
-# Enhanced ontology helpers
-def load_ontology_terms(path: Path):
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        terms = []
-        
-        if isinstance(data, dict):
-            if "skills" in data:
-                skills = data["skills"]
-                if isinstance(skills, list):
-                    terms = [str(s).lower().strip() for s in skills if s]
-                elif isinstance(skills, dict):
-                    # Handle nested skill categories
-                    for category, skill_list in skills.items():
-                        if isinstance(skill_list, list):
-                            terms.extend([str(s).lower().strip() for s in skill_list if s])
-            else:
-                # Try to extract from any list values in the dict
-                for value in data.values():
-                    if isinstance(value, list):
-                        terms.extend([str(s).lower().strip() for s in value if s])
-        elif isinstance(data, list):
-            terms = [str(s).lower().strip() for s in data if s]
-        
-        # Remove empty strings and duplicates
-        return list(set([t for t in terms if t]))
-        
-    except Exception as e:
-        st.error(f"Error loading ontology: {e}")
-        return []
-
-def extract_skills_simple(text: str, terms):
-    if not text or not terms:
-        return set()
-        
-    t = text.lower()
-    # Normalize common variants
-    normalizations = {
-        "scikit learn": "scikit-learn",
-        "sci-kit learn": "scikit-learn", 
-        "sklearn": "scikit-learn",
-        "tensorflow": "tensorflow",
-        "tensor flow": "tensorflow",
-        "pytorch": "pytorch",
-        "torch": "pytorch",  # Be careful with this one
-        "powerbi": "power bi",
-        "power-bi": "power bi",
-        "nodejs": "node.js",
-        "node js": "node.js",
-        "reactjs": "react",
-        "react js": "react"
-    }
-    
-    for old, new in normalizations.items():
-        t = t.replace(old, new)
-    
-    found = set()
-    for term in terms:
-        # Use word boundaries for better matching
-        pattern = rf"\b{re.escape(term)}\b"
-        if re.search(pattern, t, re.IGNORECASE):
-            found.add(term)
-    
-    return found
-
-def find_missing_skills(jd_text, resume_text, ontology_terms):
-    """Find skills that are in JD but not in resume"""
-    if not jd_text or not resume_text or not ontology_terms:
-        return []
-    
-    jd_skills = extract_skills_simple(jd_text, ontology_terms)
-    resume_skills = extract_skills_simple(resume_text, ontology_terms)
-    missing = jd_skills - resume_skills
-    
-    return list(missing)
-
-# Real copy-to-clipboard button
-def copy_to_clipboard_button(text: str, label="📋 Copy suggestions to clipboard"):
-    from streamlit.components.v1 import html
-    safe = (text or "").replace("\\", "\\\\").replace("`", "\\`").replace("</", "<\\/")
-    html(f"""
-        <button onclick="navigator.clipboard.writeText(`{safe}`)"
-                style="background:#111827;border:1px solid #2b2f36;color:#e5e7eb;border-radius:12px;padding:10px 14px;cursor:pointer;margin:6px 0;">
-            {label}
-        </button>
-        """, height=46)
-
-# Session history
-if "history" not in st.session_state:
-    st.session_state.history = []
+# Session state
+if "analysis_done" not in st.session_state:
+    st.session_state.analysis_done = False
 
 # -------------------------------------------------------------------
-# Action
+# Hero Section
 # -------------------------------------------------------------------
-run = st.button("⚡ Check Match", type="primary", use_container_width=True)
-if run:
-    if not resume_file or not jd_text.strip():
-        st.error("Please upload a resume and paste a job description.")
-        st.stop()
+st.markdown("""
+<div class="main-container">
+    <div class="hero-section">
+        <h1 class="hero-title">Resume Matcher</h1>
+        <p class="hero-subtitle">
+            Get instant AI-powered analysis of how well your resume matches job descriptions. 
+            Improve your chances of landing interviews with data-driven insights.
+        </p>
+    </div>
+""", unsafe_allow_html=True)
 
-    # Clean JD (this was missing and can tank coverage)
-    jd_text_clean = clean_text(jd_text or "")
+# -------------------------------------------------------------------
+# Upload Section
+# -------------------------------------------------------------------
+if not st.session_state.analysis_done:
+    st.markdown("""
+    <div class="upload-section">
+        <h3 style="text-align: center; color: #374151; margin-bottom: 2rem;">Upload Your Documents</h3>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Status block instead of fake progress loop
-    with st.status("Analyzing your resume against the job description…", expanded=False) as status:
-        resume_text = extract_resume_text(resume_file)
-        if not resume_text:
-            status.update(label="Parsing failed", state="error")
-            st.stop()
-
-        # Core scoring
-        result = compute_score(resume_text, jd_text_clean, ONTOLOGY_PATH)
-        status.update(label="Done! Scroll to see your results.", state="complete")
-
-    # ---------------- Results ----------------
-    st.markdown("### 📊 Match Results")
-
-    # Load ontology terms for improved missing skill detection
-    ontology_terms = load_ontology_terms(ONTOLOGY_PATH) if ONTOLOGY_PATH.exists() else []
-
-    # Subscores & potential fallback coverage
-    subs = result.get("subscores", {}) or {}
-    skills_cov = subs.get("skills_coverage", 0)
-    aligned = [s for s in result.get("aligned_skills", []) if s]
+    col1, col2 = st.columns(2, gap="large")
     
-    # Get missing skills from result, but also compute our own
-    raw_missing = result.get("missing_skills", [])
-    
-    # Compute missing skills using ontology
-    computed_missing = []
-    if ontology_terms:
-        computed_missing = find_missing_skills(jd_text_clean, resume_text, ontology_terms)
-    
-    # Use computed missing if the original is empty or seems wrong
-    if not raw_missing and computed_missing:
-        raw_missing = computed_missing
-    elif len(computed_missing) > len(raw_missing):
-        # If we found more missing skills, use the computed ones
-        raw_missing = computed_missing
-
-    # If coverage is 0 but we clearly matched terms, compute a display-side fallback
-    fallback_used = False
-    if skills_cov == 0 and (aligned or ontology_terms):
-        if ontology_terms:
-            jd_terms = extract_skills_simple(jd_text_clean, ontology_terms)
-            res_terms = extract_skills_simple(resume_text, ontology_terms)
-            inter = jd_terms & res_terms
-            denom = len(jd_terms) or 1
-            fallback_cov = round(100 * len(inter) / denom, 1)
-            subs["skills_coverage"] = fallback_cov
-            result["subscores"] = subs
-            skills_cov = fallback_cov
-            fallback_used = True
-
-    # Optional: recompute a displayed total so the bar matches the patched subscores
-    kw   = subs.get("keyword_alignment", 0)
-    ev   = subs.get("evidence", 0)
-    emb  = subs.get("embedding_similarity", 0)
-    cov  = subs.get("skills_coverage", 0)
-
-    # These weights are just display-side; your backend still controls real scoring logic
-    display_total = round(0.30*kw + 0.30*ev + 0.25*emb + 0.15*cov, 1)
-    score = int(round(display_total))
-
-    color = "#e53935" if score < 50 else "#fb8c00" if score < 70 else "#43a047"
-
-    st.markdown(
-        f"""
-<div style="display:flex;align-items:center;gap:.75rem; margin:.25rem 0 1rem 0;">
-  <div style="font-size:2.25rem;font-weight:800;color:{color}">{score}/100</div>
-  <div class="scorebar" style="flex:1;">
-    <div class="scorefill" style="width:{score}%; background:{color};"></div>
-  </div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-    # Show subscores
-    if isinstance(subs, dict) and subs:
-        df = pd.DataFrame([{"Area": k, "Score": v} for k, v in subs.items()]).sort_values("Score", ascending=False)
-        st.dataframe(df, use_container_width=True, hide_index=True)
-        if fallback_used:
-            st.caption("ℹ️ Skills coverage was adjusted using a lightweight fallback because the original coverage appeared as 0 despite matches.")
-    else:
-        st.caption("No subscore breakdown available.")
-
-    # Extract missing terms properly
-    missing_terms = []
-    for m in raw_missing:
-        if isinstance(m, dict):
-            # Try different possible keys
-            term = m.get("term") or m.get("skill") or m.get("name") or str(m)
-        else:
-            term = str(m)
-        if term and term != "{}":  # Avoid empty or string representations of empty dict
-            missing_terms.append(term)
-
-    # Matched vs Missing
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("#### ✅ Matched skills/keywords")
-        render_chips(aligned, ok=True)
-    with c2:
-        st.markdown("#### ⚠ Missing or weakly covered")
-        render_chips(missing_terms, ok=False)
-
-    # Debug info (remove in production)
-    if st.sidebar.checkbox("Show debug info", value=False):
-        st.markdown("#### 🐛 Debug Info")
-        st.write(f"Ontology terms loaded: {len(ontology_terms)}")
-        st.write(f"Raw missing from result: {raw_missing[:5]}...")  # Show first 5
-        st.write(f"Processed missing terms: {missing_terms[:10]}")  # Show first 10
-        if ontology_terms:
-            jd_skills = extract_skills_simple(jd_text_clean, ontology_terms)
-            resume_skills = extract_skills_simple(resume_text, ontology_terms)
-            st.write(f"JD skills found: {len(jd_skills)}")
-            st.write(f"Resume skills found: {len(resume_skills)}")
-
-    # Suggestions
-    st.markdown("#### ✍️ Quick bullet ideas (use only if accurate)")
-    suggestions_text = quick_suggestions(missing_terms)
-    st.text_area("Copy suggestions", value=suggestions_text, height=170)
-    copy_to_clipboard_button(suggestions_text)
-
-    # ATS-lite
-    if show_ats:
-        st.markdown("#### 🧪 ATS-lite checks")
-        hints = ats_lite_findings(resume_text)
-        if hints:
-            for h in hints:
-                st.write("•", h)
-        else:
-            st.write("Looks ATS-friendly at a glance.")
-
-    # Download
-    if suggestions_text and suggestions_text.strip() and suggestions_text != "No suggestions — strong match.":
-        st.download_button(
-            "⬇️ Download suggestions.txt",
-            data=suggestions_text.encode("utf-8"),
-            file_name="resume_match_suggestions.txt",
-            mime="text/plain",
-            use_container_width=True,
+    with col1:
+        st.markdown("### 📄 Resume")
+        resume_file = st.file_uploader(
+            "Upload your resume", 
+            type=["pdf", "docx", "txt"], 
+            help="Supported formats: PDF, DOCX, TXT",
+            label_visibility="collapsed"
+        )
+        
+    with col2:
+        st.markdown("### 📋 Job Description")
+        jd_text = st.text_area(
+            "Paste the job description here", 
+            height=200, 
+            placeholder="Paste the complete job description here...",
+            label_visibility="collapsed"
         )
 
-    # History
-    if show_history:
-        st.session_state.history.insert(0, {
-            "Time": dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "Score": score,
-            "Matched": len(aligned),
-            "Missing": len(missing_terms),
-            "Resume": resume_file.name,
-        })
-        st.session_state.history = st.session_state.history[:5]
-        with st.expander("🕘 Recent matches (this session)"):
-            st.table(pd.DataFrame(st.session_state.history))
+    # Analyze button
+    st.markdown("<br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        analyze_clicked = st.button("🎯 Analyze Match", type="primary", use_container_width=True)
 
-    # Privacy: clear in-memory text
-    if privacy:
-        resume_text = ""
-        suggestions_text = ""
+    # Analysis
+    if analyze_clicked:
+        if not resume_file or not jd_text.strip():
+            st.error("⚠️ Please upload both a resume and job description to continue.")
+        else:
+            with st.spinner("🔄 Analyzing your resume match..."):
+                # Clean JD text
+                jd_text_clean = clean_text(jd_text or "")
+                
+                # Extract resume text
+                resume_text = extract_resume_text(resume_file)
+                if not resume_text:
+                    st.error("❌ Could not extract text from your resume. Please try a different format.")
+                    st.stop()
+
+                # Get scoring results
+                result = compute_score(resume_text, jd_text_clean, ONTOLOGY_PATH)
+                
+                # Store results in session state
+                st.session_state.analysis_result = result
+                st.session_state.analysis_done = True
+                st.session_state.resume_name = resume_file.name
+                st.rerun()
 
 # -------------------------------------------------------------------
-# Footer
+# Results Section
 # -------------------------------------------------------------------
-st.markdown("---")
-st.markdown(
-    """
-    <div style="text-align:center; font-size: 0.95rem; color: #cbd5e1;">
-        Built with ❤️ to help job seekers<br>
-        Created by 
-        <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank" style="color:#22D3EE; text-decoration: none;">Fali Honutse</a> 
-        &nbsp;|&nbsp; 
-        <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank" style="color:#22D3EE; text-decoration: none;">Portfolio</a>
-        <br><span style="color:#94a3b8;">Forked and modified from 
-        <a href="https://github.com/srbhr/Resume-Matcher" target="_blank" style="color:#94a3b8;">srbhr/Resume-Matcher</a> (Apache 2.0 License)</span>
+if st.session_state.analysis_done and "analysis_result" in st.session_state:
+    result = st.session_state.analysis_result
+    
+    # Calculate overall score
+    subs = result.get("subscores", {}) or {}
+    kw = subs.get("keyword_alignment", 0)
+    ev = subs.get("evidence", 0) 
+    emb = subs.get("embedding_similarity", 0)
+    cov = subs.get("skills_coverage", 0)
+    
+    # Weighted score calculation
+    overall_score = round(0.30*kw + 0.30*ev + 0.25*emb + 0.15*cov, 1)
+    score_int = int(round(overall_score))
+    
+    # Score section
+    st.markdown(f"""
+    <div class="score-container">
+        <div class="score-number">{score_int}%</div>
+        <div class="score-label">Resume Match Score</div>
+        <p style="margin-top: 1rem; opacity: 0.8;">
+            {"🎉 Excellent match! Your resume aligns very well with this job." if score_int >= 80 
+             else "✅ Good match! Consider minor improvements for better alignment." if score_int >= 60
+             else "📝 Room for improvement. Focus on adding relevant skills and experience." if score_int >= 40
+             else "🔄 Significant improvements needed. Consider major resume updates."}
+        </p>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+    """, unsafe_allow_html=True)
+    
+    # Detailed metrics
+    st.markdown("### 📊 Detailed Analysis")
+    
+    metrics_data = [
+        ("Keyword Alignment", kw, "How well your resume keywords match the job requirements"),
+        ("Evidence Quality", ev, "Strength of examples and achievements in your resume"),
+        ("Content Similarity", emb, "Overall semantic similarity between resume and job description"),
+        ("Skills Coverage", cov, "Percentage of required skills present in your resume")
+    ]
+    
+    cols = st.columns(2)
+    for i, (title, value, description) in enumerate(metrics_data):
+        with cols[i % 2]:
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">{title}</div>
+                <div class="metric-value">{value:.1f}%</div>
+                <p style="color: #6b7280; font-size: 0.9rem; margin-top: 0.5rem;">{description}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Matched skills section
+    aligned_skills = result.get("aligned_skills", [])
+    if aligned_skills:
+        st.markdown("### ✅ Matched Skills & Keywords")
+        st.markdown(f"""
+        <div style="background: #f8fafc; padding: 2rem; border-radius: 16px; border-left: 4px solid #10b981;">
+            <p style="color: #374151; margin-bottom: 1rem;">
+                <strong>{len(aligned_skills)} skills</strong> from the job description were found in your resume:
+            </p>
+            {render_skills_chips(aligned_skills)}
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Action buttons
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔄 Analyze Another Resume", use_container_width=True):
+            st.session_state.analysis_done = False
+            st.session_state.analysis_result = {}
+            st.rerun()
+
+# Footer
+st.markdown("""
+</div>
+
+<div class="footer">
+    <p>Built with ❤️ to help job seekers succeed</p>
+    <p>
+        Created by <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank">Fali Honutse</a> | 
+        <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank">Portfolio</a>
+    </p>
+    <p style="font-size: 0.8rem; color: #9ca3af; margin-top: 1rem;">
+        Forked and modified from <a href="https://github.com/srbhr/Resume-Matcher" target="_blank">srbhr/Resume-Matcher</a> (Apache 2.0 License)
+    </p>
+</div>
+""", unsafe_allow_html=True)
