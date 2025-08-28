@@ -40,15 +40,28 @@ CHIP_CSS = """
 """
 st.markdown(CHIP_CSS, unsafe_allow_html=True)
 
+
 st.markdown(
     """
-<div style="padding:1.6rem; background:linear-gradient(90deg,#2c3e50,#8e44ad); border-radius:16px; text-align:center; margin-bottom:1rem">
-  <h1 style="color:#fff; margin:0 0 .3rem 0">🧠 Resume ⇄ JD Match Tool</h1>
-  <p style="color:#e6e6e6; margin:0">Upload your resume, paste the job description, and get a transparent score with gaps and quick fixes.</p>
+<div class="block-card" style="text-align:center; padding:28px 20px; margin: 6px 0 16px">
+  <div class="h1">🧠 Resume Matcher</div>
+  <div class="sub">No more guessing — see how well your resume matches the job description.</div>
+  <div class="small">Clear, fast, and private • No login required</div>
 </div>
 """,
     unsafe_allow_html=True
 )
+
+
+# st.markdown(
+#     """
+# <div style="padding:1.6rem; background:linear-gradient(90deg,#2c3e50,#8e44ad); border-radius:16px; text-align:center; margin-bottom:1rem">
+#   <h1 style="color:#fff; margin:0 0 .3rem 0">🧠 Resume Matcher</h1>
+#   <p style="color:#e6e6e6; margin:0">no more trying to see if you match the job.See how well your resume matches the job description.</p>
+# </div>
+# """,
+#     unsafe_allow_html=True
+# )
 
 with st.sidebar:
     st.header("Options")
@@ -201,13 +214,63 @@ if run:
         resume_text = ""
         suggestions_text = ""
 
+# st.markdown("---")
+# st.markdown(
+#     """
+#     <div style="text-align:center; font-size: 0.95rem; color: #cbd5e1;">
+#         Built with ❤️ to help job seekers<br>
+#         Created by 
+#         <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank" style="color:#22D3EE; text-decoration: none;">Fali Honutse</a> 
+#         &nbsp;|&nbsp; 
+#         <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank" style="color:#22D3EE; text-decoration: none;">Portfolio</a>
+#         <br><span style="color:#94a3b8;">Forked and modified from 
+#         <a href="https://github.com/srbhr/Resume-Matcher" target="_blank" style="color:#94a3b8;">srbhr/Resume-Matcher</a> (Apache 2.0 License)</span>
+#     </div>
+#     """,
+#     unsafe_allow_html=True
+# )
+
+
+
+# st.markdown("---")
+# st.markdown(
+#     """
+#     <div style="text-align: center; font-size: 0.9rem; color: #555;">
+#         Created with ❤️ by <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank" style="color:#6c63ff; text-decoration: none;">Fali Honutse</a> |
+#         <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank" style="color:#6c63ff; text-decoration: none;">My Portfolio</a><br>
+#         Forked and modified from <a href="https://github.com/srbhr/Resume-Matcher" target="_blank" style="color:#888;">srbhr/Resume-Matcher</a> under Apache 2.0 License.
+#     </div>
+#     """,
+#     unsafe_allow_html=True
+# )
+
 st.markdown("---")
 st.markdown(
     """
-    <div style="text-align: center; font-size: 0.9rem; color: #555;">
-        Created with ❤️ by <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank" style="color:#6c63ff; text-decoration: none;">Fali Honutse</a> |
-        <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank" style="color:#6c63ff; text-decoration: none;">My Portfolio</a><br>
-        Forked and modified from <a href="https://github.com/srbhr/Resume-Matcher" target="_blank" style="color:#888;">srbhr/Resume-Matcher</a> under Apache 2.0 License.
+    <style>
+    .footer-btn {
+        display:inline-block;
+        padding:6px 14px;
+        margin:4px 6px;
+        border-radius:20px;
+        font-size:0.9rem;
+        font-weight:500;
+        text-decoration:none;
+        transition:all 0.2s ease;
+    }
+    .footer-btn.portfolio {background:#7C3AED; color:white;}
+    .footer-btn.linkedin {background:#22D3EE; color:#0F172A;}
+    .footer-btn:hover {opacity:0.85; transform:translateY(-1px);}
+    </style>
+
+    <div style="text-align:center; font-size: 0.95rem; color: #cbd5e1;">
+        Built with ❤️ to help job seekers<br><br>
+
+        <a href="https://www.linkedin.com/in/fali-dillys-honutse/" target="_blank" class="footer-btn linkedin">LinkedIn</a>
+        <a href="https://falidill-portfoliowebsite.vercel.app/" target="_blank" class="footer-btn portfolio">Portfolio</a>
+
+        <br><br><span style="color:#94a3b8;">Forked and modified from 
+        <a href="https://github.com/srbhr/Resume-Matcher" target="_blank" style="color:#94a3b8; text-decoration:none;">srbhr/Resume-Matcher</a> (Apache 2.0 License)</span>
     </div>
     """,
     unsafe_allow_html=True
